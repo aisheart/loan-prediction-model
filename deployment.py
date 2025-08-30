@@ -3,10 +3,6 @@ import numpy as np
 import pickle
 import streamlit as st
 import joblib
-
-# using pd
-#import pandas as pd
-#import pickle
 import xgboost as xgb
 
 # Load the saved model
@@ -41,7 +37,7 @@ total_missed_payments = st.number_input("Total Missed Payments", min_value=0, ma
 avg_prev_loanamount = st.number_input("Average Previous Loan Amount", min_value=0, max_value=1000000, value=0)
 max_prev_loanamount = st.number_input("Maximum Previous Loan Amount", min_value=0, max_value=1000000, value=0)
 
-# Bank type (simplified - you can expand this)
+# Bank type
 bank_current = st.selectbox("Bank Current Account", [0, 1])
 bank_other = st.selectbox("Bank Other Account", [0, 1])
 bank_name_clients = 'First Bank',
@@ -50,7 +46,7 @@ employment_status_clients = 'Permanent'
 
 
 
-# A list of ALL features your model was trained on. This is critical.
+# A list of ALL features the model was trained on.
 EXPECTED_FEATURES = [
     'loannumber', 'loanamount', 'totaldue', 'termdays', 'longitude_gps',
     'latitude_gps', 'loan_approval_duration_days', 'approved_month',
@@ -71,7 +67,6 @@ EXPECTED_FEATURES = [
 ]
 
 # The data you would get from a client.
-# This data must contain the original categorical columns.
 raw_client_data = {
     'loan_amount': loan_amount,
     'totaldue': total_due,
@@ -85,26 +80,22 @@ raw_client_data = {
     'employment_status_clients': 'Permanent' # This is a single string
 }
 
-# 1. Convert the dictionary to a pandas DataFrame
+# 1. Converting the dictionary to a pandas DataFrame
 df = pd.DataFrame([raw_client_data])
 
-# 2. Perform one-hot encoding on the DataFrame
-# This is where the original columns are consumed and replaced.
+# 2. Performing one-hot encoding on the DataFrame
+# The original columns are consumed and replaced.
 df_encoded = pd.get_dummies(df, columns=['bank_name_clients', 'employment_status_clients'], dtype=int)
 
 # 3. Use reindex to align the columns with the model's expectations
-# This is the most important step for a robust prediction pipeline.
+
+
 final_data_point = df_encoded.reindex(columns=EXPECTED_FEATURES, fill_value=0)
 
-print(final_data_point)
-# Now, final_data_point is a correctly formatted DataFrame you can use for prediction
-# `prediction = model.predict(final_data_point)`
 
 # Predict button
 if st.button("Predict Loan Default"):
-    # Create input array for prediction
- 
-    
+     
     # Make prediction
     try:
         prediction = model.predict(final_data_point)
