@@ -4,6 +4,11 @@ import pickle
 import streamlit as st
 import joblib
 
+# using pd
+#import pandas as pd
+#import pickle
+import xgboost as xgb
+
 # Load the saved model
 model = joblib.load("loan_default_model.pkl")
 print(model)
@@ -39,21 +44,71 @@ max_prev_loanamount = st.number_input("Maximum Previous Loan Amount", min_value=
 # Bank type (simplified - you can expand this)
 bank_current = st.selectbox("Bank Current Account", [0, 1])
 bank_other = st.selectbox("Bank Other Account", [0, 1])
+bank_name_clients = 'First Bank',
+employment_status_clients = 'Permanent'
+
+
+
+
+# A list of ALL features your model was trained on. This is critical.
+EXPECTED_FEATURES = [
+    'loannumber', 'loanamount', 'totaldue', 'termdays', 'longitude_gps',
+    'latitude_gps', 'loan_approval_duration_days', 'approved_month',
+    'approved_dayofweek', 'age', 'total_prev_loans', 'total_missed_payments',
+    'avg_prev_loanamount', 'max_prev_loanamount', 'bank_Current', 'bank_Other',
+    'bank_Savings', 'bank_name_clients_Diamond Bank', 'bank_name_clients_EcoBank',
+    'bank_name_clients_FCMB', 'bank_name_clients_Fidelity Bank',
+    'bank_name_clients_First Bank', 'bank_name_clients_GT Bank',
+    'bank_name_clients_Heritage Bank', 'bank_name_clients_Keystone Bank',
+    'bank_name_clients_Skye Bank', 'bank_name_clients_Stanbic IBTC',
+    'bank_name_clients_Standard Chartered', 'bank_name_clients_Sterling Bank',
+    'bank_name_clients_UBA', 'bank_name_clients_Union Bank',
+    'bank_name_clients_Unity Bank', 'bank_name_clients_Unknown',
+    'bank_name_clients_Wema Bank', 'bank_name_clients_Zenith Bank',
+    'employment_status_clients_Permanent', 'employment_status_clients_Retired',
+    'employment_status_clients_Self-Employed', 'employment_status_clients_Student',
+    'employment_status_clients_Unemployed', 'employment_status_clients_Unknown'
+]
+
+# The data you would get from a client.
+# This data must contain the original categorical columns.
+raw_client_data = {
+    'loan_amount': loan_amount,
+    'totaldue': total_due,
+    'termdays': term_days,
+    'approved_dayofweek': approved_dayofweek,
+    'age': age,
+    'total_prev_loans': total_prev_loans,
+    'total_missed_payments': total_missed_payments,
+    'avg_prev_loanamount': avg_prev_loanamount,
+    'bank_name_clients': 'First Bank', # This is a single string
+    'employment_status_clients': 'Permanent' # This is a single string
+}
+
+# 1. Convert the dictionary to a pandas DataFrame
+df = pd.DataFrame([raw_client_data])
+
+# 2. Perform one-hot encoding on the DataFrame
+# This is where the original columns are consumed and replaced.
+df_encoded = pd.get_dummies(df, columns=['bank_name_clients', 'employment_status_clients'], dtype=int)
+
+# 3. Use reindex to align the columns with the model's expectations
+# This is the most important step for a robust prediction pipeline.
+final_data_point = df_encoded.reindex(columns=EXPECTED_FEATURES, fill_value=0)
+
+print(final_data_point)
+# Now, final_data_point is a correctly formatted DataFrame you can use for prediction
+# `prediction = model.predict(final_data_point)`
 
 # Predict button
 if st.button("Predict Loan Default"):
     # Create input array for prediction
-    input_data = np.array([[
-        loan_number, loan_amount, total_due, term_days, longitude_gps, 
-        latitude_gps, loan_approval_duration_days, approved_month, 
-        approved_dayofweek, age, total_prev_loans, total_missed_payments, 
-        avg_prev_loanamount, max_prev_loanamount, bank_current, bank_other
-    ]])
+ 
     
     # Make prediction
     try:
-        prediction = model.predict(input_data)
-        prediction_proba = model.predict_proba(input_data) if hasattr(model, 'predict_proba') else None
+        prediction = model.predict(final_data_point)
+        prediction_proba = model.predict_proba(final_data_point) if hasattr(model, 'predict_proba') else None
         
         # Display results
         st.subheader("Prediction Results")
